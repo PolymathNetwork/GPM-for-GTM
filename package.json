@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@polymathnetwork/sdk": "2.0.1-beta.39",
+    "@polymathnetwork/sdk": "2.0.1-beta.42",
     "antd": "^3.23.2",
     "gh-pages": "^2.1.1",
     "react": "^16.9.0",
