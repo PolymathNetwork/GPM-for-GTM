@@ -13,7 +13,6 @@ const initialState = {
     error: undefined,
     networkId: -1,
     walletAddress: '',
-    reservations: undefined
   }
 }
 
