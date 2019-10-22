@@ -13,6 +13,9 @@ const initialState = {
     error: undefined,
     networkId: -1,
     walletAddress: '',
+    tokens: [],
+    tokenIndex: undefined,
+    pmEnabled: undefined,
   }
 }
 
