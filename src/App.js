@@ -228,17 +228,19 @@ function App() {
     dispatch({type: 'TOKEN_SELECTED', tokenIndex})
   }
 
-  const togglePM = async (enable) => {
+  async function togglePM(enable) {
+    console.log('PERMISSIONS_FEATURE', PERMISSIONS_FEATURE)
     dispatch({type: 'TOGGLING_PM'})
     if (enable) {
+
       // Enable module
-      const queue = await token.features.enable(PERMISSIONS_FEATURE)
+      const queue = await token.features.enable({feature: PERMISSIONS_FEATURE})
       const result = await queue.run()
       console.log(result)
     } else {
       // @FIXME. features.disable() isn't implemented yet.
       // Disable module
-      const queue = await token.features.disable(PERMISSIONS_FEATURE)
+      const queue = await token.features.disable({feature: PERMISSIONS_FEATURE})
       const result = await queue.run()
       console.log(result)
     }
