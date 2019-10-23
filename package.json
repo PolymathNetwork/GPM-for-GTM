@@ -1,5 +1,6 @@
 {
-  "name": "dapp-boilerplate",
+  "name": "permissions",
+  "homepage": "https://polymathnetwork.github.io/permissions",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
