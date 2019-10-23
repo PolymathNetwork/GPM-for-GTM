@@ -8,6 +8,9 @@ import PMDisplay from './PMDisplay'
 const { Content, Header } = Layout
 const { Text } = Typography
 
+const PERMISSIONS_FEATURE = 'Permissions'
+const ROLE = 'ShareholdersAdministrator'
+
 const networkConfigs = {
   1: {
     polymathRegistryAddress: '0xdfabf3e4793cd30affb47ab6fa4cf4eef26bbc27'
@@ -55,19 +58,12 @@ export const reducer = (state, action) => {
       loading: true,
       loadingMessage: 'Fetching tokens'
     }
-  case 'FETCHED_TOKENS':
-    const { tokens } = action
-    return {
-      ...state,
-      tokens,
-      loading: false,
-      loadingMessage: ''
-    }
   case 'TOKEN_SELECTED':
     const { tokenIndex } = action
     return {
       ...state,
-      tokenIndex
+      tokenIndex,
+      pmEnabled: undefined
     }
   case 'FETCHING_PM_STATUS':
     return {
@@ -75,13 +71,37 @@ export const reducer = (state, action) => {
       loading: true,
       loadingMessage: 'Fetching permissions feature status'
     }
-  case 'FETCHED_PM_STATUS':
-    const { pmEnabled } = action
+  case 'FETCHING_DELEGATES':
     return {
       ...state,
-      pmEnabled,
+      loading: true,
+      loadingMessage: 'Fetching delegates'
+    }
+  case 'REMOVING_DELEGATE':
+    const { address } = action
+    return {
+      ...state,
+      address,
+      loading: true,
+      loadingMessage: `Revoking roles of ${address}`
+    }
+  case 'FETCHED_TOKENS':
+  case 'FETCHED_PM_STATUS':
+  case 'TOGGLED_PM':
+  case 'FETCHED_DELEGATES':
+  case 'REMOVED_DELEGATE':
+    const { type, ...payload } = action
+    return {
+      ...state,
+      ...payload,
       loading: false,
       loadingMessage: ''
+    }
+  case 'TOGGLING_PM':
+    return {
+      ...state,
+      loading: true,
+      loadingMessage: 'Toggling permission management'
     }
   default:
     throw new Error(`Unrecognized action type: ${action.type}`)
@@ -121,7 +141,7 @@ function User({walletAddress}) {
 
 function App() {
   const [state, dispatch] = useContext(Store)
-  const { sdk, loading, loadingMessage, walletAddress, error, networkId, tokens, tokenIndex, pmEnabled } = state.AppReducer
+  const { sdk, loading, loadingMessage, walletAddress, error, networkId, tokens, tokenIndex, pmEnabled, delegates } = state.AppReducer
   const token = tokens[tokenIndex]
 
   // Initialize the SDK.
@@ -179,7 +199,7 @@ function App() {
   useEffect(() => {
     async function checkPMStatus() {
       dispatch({type: 'FETCHING_PM_STATUS'})
-      const enabled = await token.features.isEnabled({feature: 'Permissions'})
+      const enabled = await token.features.isEnabled({feature: PERMISSIONS_FEATURE})
       dispatch({type: 'FETCHED_PM_STATUS', pmEnabled: enabled})
     }
     if (token && pmEnabled === undefined) {
@@ -187,25 +207,53 @@ function App() {
     }
   }, [dispatch, pmEnabled, token])
 
-  // // d. load delegates
-  // useEffect(() => {
-  //   async function fetchDelegates(dispatch, token) {
-  //     dispatch({type: 'FETCHING_DELEGATES'})
-  //     const delegates = token.permissions.
-  //     dispatch({type: 'FETCHED_DELEGATES'})
-  //   }
-  // }, [tokens, tokenIndex])
+  // d. load delegates
+  useEffect(() => {
+    async function fetchDelegates() {
+      dispatch({type: 'FETCHING_DELEGATES'})
+      const delegates = await token.permissions.getDelegatesForRole({role: ROLE})
+      console.log('delegates', delegates)
+      dispatch({type: 'FETCHED_DELEGATES', delegates})
+    }
+    if (pmEnabled) {
+      fetchDelegates()
+    }
+  }, [tokens, pmEnabled, dispatch, token])
 
-  // if (tokenIndex !== undefined) {
-  //   const token = tokens[tokenIndex]
-  //   fetchDelegates(token, token)
-  // }
+
 
   const selectToken = (tokenIndex) => {
     dispatch({type: 'TOKEN_SELECTED', tokenIndex})
   }
 
-  const tokenSelectOpts = tokens.map((token, i) => {return {label: token.symbol, value: i}})
+  const togglePM = async (enable) => {
+    dispatch({type: 'TOGGLING_PM'})
+    if (enable) {
+      // Enable module
+      const queue = await token.features.enable(PERMISSIONS_FEATURE)
+      const result = await queue.run()
+      console.log(result)
+    } else {
+      // @FIXME. features.disable() isn't implemented yet.
+      // Disable module
+      const queue = await token.features.disable(PERMISSIONS_FEATURE)
+      const result = await queue.run()
+      console.log(result)
+    }
+    dispatch({type: 'TOGGLED_PM', pmEnabled: !enable})
+  }
+
+  const removeDelegate = async (address) => {
+    dispatch({type: 'REMOVING_DELEGATE', address})
+    const queue = await token.permissions.revokeRole({ delegateAddress: address, role: ROLE })
+    console.log(queue)
+    // @FIXME an exception occurs here.
+    const res = await queue.run()
+    console.log('res', res)
+    dispatch({type: 'REMOVED_DELEGATE'})
+  }
+
+  const tokenSelectOpts = tokens.map((token, i) => ({label: token.symbol, value: i}))
 
   return (
     <div>
@@ -242,7 +290,7 @@ function App() {
               </div>
             }
             { token && <React.Fragment>
-              <PMDisplay enabled={pmEnabled}/>
+              <PMDisplay enabled={pmEnabled} onChange={togglePM} delegates={delegates} removeDelegate={removeDelegate}/>
             </React.Fragment>}
           </Content>
         </Layout>
