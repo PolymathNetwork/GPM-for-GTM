@@ -78,18 +78,22 @@ export const reducer = (state, action) => {
       loadingMessage: 'Fetching delegates'
     }
   case 'REMOVING_DELEGATE':
+  case 'ADDING_DELEGATE':
     const { address } = action
     return {
       ...state,
       address,
       loading: true,
-      loadingMessage: `Revoking roles of ${address}`
+      loadingMessage: action.type === 'REMOVING_DELEGATE' ?
+        `Revoking roles of ${address}` :
+        `Adding delegate ${address}`
     }
   case 'FETCHED_TOKENS':
   case 'FETCHED_PM_STATUS':
   case 'TOGGLED_PM':
   case 'FETCHED_DELEGATES':
   case 'REMOVED_DELEGATE':
+  case 'ADDED_DELEGATE':
     const { type, ...payload } = action
     return {
       ...state,
@@ -220,8 +224,6 @@ function App() {
     }
   }, [tokens, pmEnabled, dispatch, token])
 
-
-
   const selectToken = (tokenIndex) => {
     dispatch({type: 'TOKEN_SELECTED', tokenIndex})
   }
@@ -252,6 +254,17 @@ function App() {
     console.log('res', res)
     dispatch({type: 'REMOVED_DELEGATE'})
   }
+
+  const addDelegate = async (address) => {
+    dispatch({type: 'ADDING_DELEGATE', address})
+    const queue = await token.permissions.assignRole({ delegateAddress: address, role: ROLE })
+    console.log(queue)
+    // @FIXME an exception occurs here.
+    const res = await queue.run()
+    console.log('res', res)
+    dispatch({type: 'ADDED_DELEGATE'})
+  }
+
 
   const tokenSelectOpts = tokens.map((token, i) => ({label: token.symbol, value: i}))
 
@@ -290,7 +303,11 @@ function App() {
               </div>
             }
             { token && <React.Fragment>
-              <PMDisplay enabled={pmEnabled} onChange={togglePM} delegates={delegates} removeDelegate={removeDelegate}/>
+              <PMDisplay enabled={pmEnabled}
+                onChange={togglePM}
+                delegates={delegates}
+                removeDelegate={removeDelegate}
+                addDelegate={addDelegate}/>
             </React.Fragment>}
           </Content>
         </Layout>
