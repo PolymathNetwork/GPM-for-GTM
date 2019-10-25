@@ -1,37 +1,61 @@
-import React, {Fragment} from 'react'
-import { Switch, Table, Typography, Button, Icon, Form, Input } from 'antd'
+import React, {Fragment, useState} from 'react'
+import { Switch, Table, Typography, Button, Icon, Form, Input, Modal, Spin, Select } from 'antd'
 import useForm from 'rc-form-hooks'
 import { utils as web3Utils } from 'web3'
 
 const { Column } = Table
 const { Text } = Typography
 const { Item } = Form
+const { Option } = Select
 
-export default function PMDisplay({enabled, onChange, delegates, removeDelegate, addDelegate}) {
-  delegates = delegates.map(delegate => ({
-    key: delegate,
-    address: delegate
+const formItemLayout = {
+  labelCol: {
+    xs: { span: 24 },
+    sm: { span: 8 },
+  },
+  wrapperCol: {
+    xs: { span: 24 },
+    sm: { span: 16 },
+  },
+}
+const rolesMap = {
+  'PermissionsAdministrator': 'Permissions Administrator',
+  'ShareholdersAdministrator' : 'Shareholders Administrator'
+}
+
+export default function PMDisplay({
+  enabled,
+  onChange,
+  records,
+  revokeRole,
+  assignRole,
+  roles
+}) {
+  records = records.map(({address, role}) => ({
+    key: address,
+    address: address,
+    role
   }))
   const { getFieldDecorator, validateFields, errors, values, resetFields } = useForm()
+  const spinning = false
+  const [formVisible, setFormVisible] = useState(false)
 
+  const rolesOpts = roles.map(role => ({
+    value: role,
+    label: rolesMap[role]
+  }))
   const handleSubmit = async () => {
-    const fields = ['address']
+    const fields = ['address', 'role']
     validateFields(fields, { force: true })
       .then(async (values) => {
         console.log(values)
-        // dispatch({type: 'CREATING_TOKEN'})
-        // const reservation = reservations.filter(r => r.symbol === values.symbol)[0]
 
         try {
-          await addDelegate(values.address)
-          // dispatch({ type: 'CREATED_TOKEN'})
-          // message.success(`Token ${reservation.symbol} has been created successfully!`)
+          await assignRole(values.address, values.role)
           resetFields()
         }
         catch (error) {
           console.error(error)
-          // dispatch({ type: 'ERROR',
-          // error: error.message} )
         }
       })
   }
@@ -40,47 +64,73 @@ export default function PMDisplay({enabled, onChange, delegates, removeDelegate,
     <Fragment>
       <Switch checked={enabled} onChange={onChange} />
       {enabled && <Fragment>
-        <Form layout="inline" onSubmit={handleSubmit}>
-          <Item
-            // style={{textAlign: 'left', marginBottom: 25}}
-            name="address"
-            label="Address"
-            // extra="Address of a wallet to be used to store tokens for some operations. Defaults to current user (eg Token Issuer) address"
-          >
-            {getFieldDecorator('address', {
-              // initialValue: walletAddress,
-              rules: [
-                { required: true  },
-                {
-                  validator: (rule, value, callback) => {
-                    if (!web3Utils.isAddress(value)) {
-                      callback('Address is invalid')
-                      return
+        <Button type="primary" onClick={() => setFormVisible(true)}>Assign a role</Button>
+        <Modal
+          title={'Assign a role'}
+          okText="Save"
+          closable={false}
+          visible={formVisible}
+          footer={null}
+        >
+          <Spin spinning={spinning} size="large">
+            <Form {...formItemLayout}>
+              <Item name="address" label="Address">
+                {getFieldDecorator('address', {
+                  rules: [
+                    { required: true  },
+                    {
+                      validator: (rule, value, callback) => {
+                        if (!web3Utils.isAddress(value)) {
+                          callback('Address is invalid')
+                          return
+                        }
+                        callback()
+                        return
+                      }
                     }
-                    callback()
-                    return
-                  }
-                }
-              ] })(<Input />)}
-          </Item>
-          <Button type="primary" onClick={handleSubmit}>Submit</Button>
-        </Form>
-        <Table dataSource={delegates} rowKey="address">
+                  ],
+                })(<Input />)}
+              </Item>
+              <Item name="role" label="Role">
+                {getFieldDecorator('role')(<Select>
+                  {rolesOpts.map(({value, label}) =>
+                    <Option value={value}>{label}</Option>)}
+                </Select>)}
+              </Item>
+              <Item name="details" label="Details">
+                {getFieldDecorator('details')(<Input />)}
+              </Item>
+              <Item>
+                <Button onClick={() => setFormVisible(false)}>Cancel</Button>
+                <Button type="primary" onClick={handleSubmit}>Save</Button>
+              </Item>
+            </Form>
+          </Spin>
+        </Modal>
+        <Table dataSource={records} rowKey="address">
           <Column
             title='Address'
             dataIndex='address'
             key='address'
             render={(text) => <Text>{text}</Text>}
           />
-          <Column render={(text, record) => {
-            return (
-              <Fragment>
-                <Button onClick={() => removeDelegate(record.address)}>
-                  <Icon type="delete" theme="filled" />
-                </Button>
-              </Fragment>
-            )
-          }}/>
+          <Column
+            title='Role'
+            dataIndex='role'
+            key='role'
+            render={(role) => <Text>{rolesMap[role]}</Text>}
+          />
+          <Column
+            title='Actions'
+            render={(text, record) => {
+              return (
+                <Fragment>
+                  <Button onClick={() => revokeRole(record.address, record.role)}>
+                    <Icon type="delete" theme="filled" />
+                  </Button>
+                </Fragment>
+              )
+            }}/>
         </Table>
       </Fragment>
       }

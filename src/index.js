@@ -16,7 +16,8 @@ const initialState = {
     tokens: [],
     tokenIndex: undefined,
     pmEnabled: undefined,
-    delegates: []
+    delegates: [],
+    features: undefined
   }
 }
 

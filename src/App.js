@@ -5,11 +5,10 @@ import { Layout, Spin, Icon, Typography, Alert } from 'antd'
 import TokenSelector from './TokenSelector'
 import PMDisplay from './PMDisplay'
 
-const { Content, Header } = Layout
+const { Content, Header, Sider } = Layout
 const { Text } = Typography
 
 const PERMISSIONS_FEATURE = 'Permissions'
-const ROLE = 'ShareholdersAdministrator'
 
 const networkConfigs = {
   1: {
@@ -52,11 +51,11 @@ export const reducer = (state, action) => {
       loadingMessage: '',
       error,
     }
-  case 'FETCHING_TOKENS':
+  case 'LOADING_TOKENS':
     return {
       ...state,
       loading: true,
-      loadingMessage: 'Fetching tokens'
+      loadingMessage: 'Loading tokens'
     }
   case 'TOKEN_SELECTED':
     const { tokenIndex } = action
@@ -65,17 +64,17 @@ export const reducer = (state, action) => {
       tokenIndex,
       pmEnabled: undefined
     }
-  case 'FETCHING_PM_STATUS':
+  case 'LOADING_DELEGATES':
     return {
       ...state,
       loading: true,
-      loadingMessage: 'Fetching permissions feature status'
+      loadingMessage: 'Loading delegates'
     }
-  case 'FETCHING_DELEGATES':
+  case 'LOADING_FEATURES_STATUS':
     return {
       ...state,
       loading: true,
-      loadingMessage: 'Fetching delegates'
+      loadingMessage: 'Loading features status'
     }
   case 'REMOVING_DELEGATE':
   case 'ADDING_DELEGATE':
@@ -88,12 +87,12 @@ export const reducer = (state, action) => {
         `Revoking roles of ${address}` :
         `Adding delegate ${address}`
     }
-  case 'FETCHED_TOKENS':
-  case 'FETCHED_PM_STATUS':
+  case 'LOADED_TOKENS':
   case 'TOGGLED_PM':
-  case 'FETCHED_DELEGATES':
+  case 'LOADED_DELEGATES':
   case 'REMOVED_DELEGATE':
   case 'ADDED_DELEGATE':
+  case 'LOADED_FEATURES_STATUS':
     const { type, ...payload } = action
     return {
       ...state,
@@ -145,7 +144,20 @@ function User({walletAddress}) {
 
 function App() {
   const [state, dispatch] = useContext(Store)
-  const { sdk, loading, loadingMessage, walletAddress, error, networkId, tokens, tokenIndex, pmEnabled, delegates } = state.AppReducer
+  const {
+    sdk,
+    loading,
+    loadingMessage,
+    walletAddress,
+    error,
+    networkId,
+    tokens,
+    tokenIndex,
+    pmEnabled,
+    delegates,
+    features,
+    availableRoles
+  } = state.AppReducer
   const token = tokens[tokenIndex]
 
   // Initialize the SDK.
@@ -186,41 +198,45 @@ function App() {
     }
   }, [dispatch, sdk])
 
-  // b. Fetch tokens
+  // Fetch tokens
   useEffect(() => {
-    async function fetchTokens(dispatch, sdk, walletAddress) {
-      dispatch({type: 'FETCHING_TOKENS'})
+    async function getTokens(dispatch, sdk, walletAddress) {
+      dispatch({type: 'LOADING_TOKENS'})
       const tokens = await sdk.getSecurityTokens({ walletAddress })
-
-      dispatch({type: 'FETCHED_TOKENS', tokens})
+      dispatch({type: 'LOADED_TOKENS', tokens})
     }
     if (sdk && walletAddress && tokens.length === 0) {
-      fetchTokens(dispatch, sdk, walletAddress)
+      getTokens(dispatch, sdk, walletAddress)
     }
   }, [walletAddress, sdk, dispatch, tokens])
 
-  // c. Check if permissions are enabled
+  // Load features status / available roles
   useEffect(() => {
-    async function checkPMStatus() {
-      dispatch({type: 'FETCHING_PM_STATUS'})
-      const enabled = await token.features.isEnabled({feature: PERMISSIONS_FEATURE})
-      dispatch({type: 'FETCHED_PM_STATUS', pmEnabled: enabled})
+    async function getFeaturesStatus() {
+      dispatch({type: 'LOADING_FEATURES_STATUS'})
+      const featuresStatus = await token.features.getStatus()
+      console.log(featuresStatus)
+      const pmEnabled = featuresStatus[PERMISSIONS_FEATURE]
+      delete featuresStatus[PERMISSIONS_FEATURE]
+      const availableRoles = await token.permissions.getAvailableRoles()
+      console.log('availableRoles', availableRoles)
+      dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
     }
-    if (token && pmEnabled === undefined) {
-      checkPMStatus()
+    if (token) {
+      getFeaturesStatus()
     }
-  }, [dispatch, pmEnabled, token])
+  }, [dispatch, token])
 
-  // d. load delegates
+  // Load delegates
   useEffect(() => {
-    async function fetchDelegates() {
-      dispatch({type: 'FETCHING_DELEGATES'})
-      const delegates = await token.permissions.getDelegatesForRole({role: ROLE})
+    async function getDelegates() {
+      dispatch({type: 'LOADING_DELEGATES'})
+      const delegates = await await token.permissions.getAllDelegates()
       console.log('delegates', delegates)
-      dispatch({type: 'FETCHED_DELEGATES', delegates})
+      dispatch({type: 'LOADED_DELEGATES', delegates})
     }
     if (pmEnabled) {
-      fetchDelegates()
+      getDelegates()
     }
   }, [tokens, pmEnabled, dispatch, token])
 
@@ -229,46 +245,63 @@ function App() {
   }
 
   async function togglePM(enable) {
-    console.log('PERMISSIONS_FEATURE', PERMISSIONS_FEATURE)
-    dispatch({type: 'TOGGLING_PM'})
-    if (enable) {
-
+    try {
+      dispatch({type: 'TOGGLING_PM'})
+      if (enable) {
       // Enable module
-      const queue = await token.features.enable({feature: PERMISSIONS_FEATURE})
-      const result = await queue.run()
-      console.log(result)
-    } else {
+        const queue = await token.features.enable({feature: PERMISSIONS_FEATURE})
+        const result = await queue.run()
+        console.log(result)
+      } else {
       // @FIXME. features.disable() isn't implemented yet.
       // Disable module
-      const queue = await token.features.disable({feature: PERMISSIONS_FEATURE})
-      const result = await queue.run()
-      console.log(result)
+        const queue = await token.features.disable({feature: PERMISSIONS_FEATURE})
+        const result = await queue.run()
+        console.log(result)
+      }
+      dispatch({type: 'TOGGLED_PM', pmEnabled: !enable})
+    } catch (error) {
+      console.error(error)
     }
-    dispatch({type: 'TOGGLED_PM', pmEnabled: !enable})
   }
 
-  const removeDelegate = async (address) => {
-    dispatch({type: 'REMOVING_DELEGATE', address})
-    const queue = await token.permissions.revokeRole({ delegateAddress: address, role: ROLE })
-    console.log(queue)
-    // @FIXME an exception occurs here.
-    const res = await queue.run()
-    console.log('res', res)
-    dispatch({type: 'REMOVED_DELEGATE'})
+  const revokeRole = async (address, role) => {
+    try {
+      dispatch({type: 'REMOVING_DELEGATE', address})
+      const queue = await token.permissions.revokeRole({ delegateAddress: address, role })
+      console.log(queue)
+      // @FIXME an exception occurs here.
+      const res = await queue.run()
+      console.log('res', res)
+      dispatch({type: 'REMOVED_DELEGATE'})
+    } catch (error) {
+      console.error(error)
+    }
   }
 
-  const addDelegate = async (address) => {
-    dispatch({type: 'ADDING_DELEGATE', address})
-    const queue = await token.permissions.assignRole({ delegateAddress: address, role: ROLE })
-    console.log(queue)
-    // @FIXME an exception occurs here.
-    const res = await queue.run()
-    console.log('res', res)
-    dispatch({type: 'ADDED_DELEGATE'})
+  const assignRole = async (address, role) => {
+    try {
+      dispatch({type: 'ADDING_DELEGATE', address})
+      const queue = await token.permissions.assignRole({ delegateAddress: address, role })
+      console.log(queue)
+      // @FIXME an exception occurs here.
+      const res = await queue.run()
+      dispatch({type: 'ADDED_DELEGATE'})
+    } catch (error) {
+      console.error(error)
+    }
   }
 
 
   const tokenSelectOpts = tokens.map((token, i) => ({label: token.symbol, value: i}))
+  const records = delegates.reduce((acc, delegate, i) => {
+    return acc.concat(delegate.roles.map(role => ({
+      address: delegates[i].delegateAddress,
+      role
+    })))
+  }, [])
+
+  console.log('delegates, records', delegates, records)
 
   return (
     <div>
@@ -284,34 +317,46 @@ function App() {
             <Network networkId={networkId} />
             <User walletAddress={walletAddress} />
           </Header>
-          <Content style={{
-            padding: 50,
-            backgroundColor: '#FAFDFF'
-          }}>
-            {error && <Alert
-              message={error}
-              type="error"
-              closable
-              showIcon
-            />}
-            { walletAddress &&
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                width: 250,
-                justifyContent: 'flex-start'
-              }}>
-                <TokenSelector tokenSelectOpts={tokenSelectOpts} onChange={selectToken} />
-              </div>
-            }
-            { token && <React.Fragment>
-              <PMDisplay enabled={pmEnabled}
-                onChange={togglePM}
-                delegates={delegates}
-                removeDelegate={removeDelegate}
-                addDelegate={addDelegate}/>
-            </React.Fragment>}
-          </Content>
+          <Layout>
+            <Sider width={350}
+              style={{
+                padding: 50,
+                backgroundColor: '#FAFDFF'
+              }}
+            >
+              { walletAddress &&
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: 250,
+                  justifyContent: 'flex-start'
+                }}>
+                  <TokenSelector tokenSelectOpts={tokenSelectOpts} onChange={selectToken} />
+                </div>
+              }
+            </Sider>
+            <Content style={{
+              padding: 50,
+              backgroundColor: '#FAFDFF'
+            }}>
+
+              {error && <Alert
+                message={error}
+                type="error"
+                closable
+                showIcon
+              />}
+              { token && features && availableRoles && delegates && <React.Fragment>
+                <PMDisplay enabled={pmEnabled}
+                  onChange={togglePM}
+                  records={records}
+                  roles={availableRoles}
+                  revokeRole={revokeRole}
+                  assignRole={assignRole}/>
+              </React.Fragment>}
+
+            </Content>
+          </Layout>
         </Layout>
       </Spin>
     </div>
