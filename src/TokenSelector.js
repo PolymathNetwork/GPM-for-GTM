@@ -13,8 +13,7 @@ export default function TokenSelector({tokenSelectOpts, onChange}) {
         paddingBottom: 20,
         width: '100%'
       }}>
-        Once you select a token, you will be able to manage token holders white-list by adding,
-        editing or removing token holders.
+        Once you select a token, you will be able to manage administrators and operators of various Security Token features
       </Text>
       <Select
         autoFocus

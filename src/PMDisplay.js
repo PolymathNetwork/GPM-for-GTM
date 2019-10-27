@@ -1,6 +1,7 @@
 import React, {Fragment, useState} from 'react'
-import { Switch, Table, Typography, Button, Icon, Form, Input, Modal, Spin, Select } from 'antd'
+import { Table, Typography, Button, Icon, Form, Input, Modal, Spin, Select } from 'antd'
 import useForm from 'rc-form-hooks'
+import { _split } from './index'
 import { utils as web3Utils } from 'web3'
 
 const { Column } = Table
@@ -24,8 +25,6 @@ const rolesMap = {
 }
 
 export default function PMDisplay({
-  enabled,
-  onChange,
   records,
   revokeRole,
   assignRole,
@@ -37,7 +36,6 @@ export default function PMDisplay({
     role
   }))
   const { getFieldDecorator, validateFields, errors, values, resetFields } = useForm()
-  const spinning = false
   const [formVisible, setFormVisible] = useState(false)
 
   const rolesOpts = roles.map(role => ({
@@ -61,79 +59,78 @@ export default function PMDisplay({
   }
 
   return (
-    <Fragment>
-      <Switch checked={enabled} onChange={onChange} />
-      {enabled && <Fragment>
-        <Button type="primary" onClick={() => setFormVisible(true)}>Assign a role</Button>
-        <Modal
-          title={'Assign a role'}
-          okText="Save"
-          closable={false}
-          visible={formVisible}
-          footer={null}
-        >
-          <Spin spinning={spinning} size="large">
-            <Form {...formItemLayout}>
-              <Item name="address" label="Address">
-                {getFieldDecorator('address', {
-                  rules: [
-                    { required: true  },
-                    {
-                      validator: (rule, value, callback) => {
-                        if (!web3Utils.isAddress(value)) {
-                          callback('Address is invalid')
-                          return
-                        }
-                        callback()
-                        return
-                      }
+    <div style={{display: 'flex', flexDirection: 'column'}}>
+      <Button
+        type="primary"
+        onClick={() => setFormVisible(true)}
+        style={{alignSelf: 'flex-end', marginBottom: 20}}>Assign a role</Button>
+      <Modal
+        title={'Assign a role'}
+        okText="Save"
+        closable={false}
+        visible={formVisible}
+        footer={null}
+      >
+        <Form {...formItemLayout}>
+          <Item name="address" label="Address">
+            {getFieldDecorator('address', {
+              rules: [
+                { required: true  },
+                {
+                  validator: (rule, value, callback) => {
+                    if (!web3Utils.isAddress(value)) {
+                      callback('Address is invalid')
+                      return
                     }
-                  ],
-                })(<Input />)}
-              </Item>
-              <Item name="role" label="Role">
-                {getFieldDecorator('role')(<Select>
-                  {rolesOpts.map(({value, label}) =>
-                    <Option value={value}>{label}</Option>)}
-                </Select>)}
-              </Item>
-              <Item name="details" label="Details">
-                {getFieldDecorator('details')(<Input />)}
-              </Item>
-              <Item>
-                <Button onClick={() => setFormVisible(false)}>Cancel</Button>
-                <Button type="primary" onClick={handleSubmit}>Save</Button>
-              </Item>
-            </Form>
-          </Spin>
-        </Modal>
-        <Table dataSource={records} rowKey="address">
-          <Column
-            title='Address'
-            dataIndex='address'
-            key='address'
-            render={(text) => <Text>{text}</Text>}
-          />
-          <Column
-            title='Role'
-            dataIndex='role'
-            key='role'
-            render={(role) => <Text>{rolesMap[role]}</Text>}
-          />
-          <Column
-            title='Actions'
-            render={(text, record) => {
-              return (
-                <Fragment>
-                  <Button onClick={() => revokeRole(record.address, record.role)}>
-                    <Icon type="delete" theme="filled" />
-                  </Button>
-                </Fragment>
-              )
-            }}/>
-        </Table>
-      </Fragment>
-      }
-    </Fragment>
+                    callback()
+                    return
+                  }
+                }
+              ],
+            })(<Input />)}
+          </Item>
+          <Item name="role" label="Role">
+            {getFieldDecorator('role', {rules: [
+              { required: true  }
+            ]})(<Select>
+              {rolesOpts.map(({value, label}) =>
+                <Option value={value}>{label}</Option>)}
+            </Select>)}
+          </Item>
+          <Item name="details" label="Details">
+            {getFieldDecorator('details')(<Input />)}
+          </Item>
+          <Item>
+            <Button onClick={() => setFormVisible(false)}>Cancel</Button>
+            <Button type="primary" onClick={handleSubmit}>Save</Button>
+          </Item>
+        </Form>
+      </Modal>
+      <Table size="middle" dataSource={records} rowKey={(address, role) => `${address}-${role}`}>
+        <Column
+          title='Address'
+          dataIndex='address'
+          key='address'
+          render={(text) => <Text>{text}</Text>}
+        />
+        <Column
+          title='Role'
+          dataIndex='role'
+          key='role'
+          render={(role) => <Text>{_split(role)}</Text>}
+        />
+        <Column
+          title='Actions'
+          render={(text, record) => {
+            return (
+              <Fragment>
+                <Button onClick={() => revokeRole(record.address, record.role)}>
+                  <Icon type="delete" theme="filled" />
+                </Button>
+              </Fragment>
+            )
+          }}/>
+      </Table>
+    </div>
   )
 }

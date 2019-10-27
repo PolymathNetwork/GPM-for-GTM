@@ -27,6 +27,10 @@ const WrappedApp = () => {
   return (<Store.Provider value={store}><App /></Store.Provider>)
 }
 
+export const _split = (string) => {
+  return string.split(/(?=[A-Z])/)
+}
+
 ReactDOM.render(<WrappedApp />, document.getElementById('root'))
 
 // If you want your app to work offline and load faster, you can change

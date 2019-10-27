@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, Fragment } from 'react'
 import { Store } from './index'
 import { Polymath, browserUtils } from '@polymathnetwork/sdk'
-import { Layout, Spin, Icon, Typography, Alert } from 'antd'
+import { Layout, Spin, Icon, Typography, Alert, Button, Descriptions, Badge, Divider } from 'antd'
 import TokenSelector from './TokenSelector'
 import PMDisplay from './PMDisplay'
-
+import { _split } from './index'
 const { Content, Header, Sider } = Layout
 const { Text } = Typography
 
@@ -142,6 +142,24 @@ function User({walletAddress}) {
   return null
 }
 
+function Features({features, pmEnabled, onClick}) {
+  return (
+    <Descriptions column={4}>
+      <Descriptions.Item key='Permissions' label='Permissions'>
+        { pmEnabled
+          ? <Badge status='success' text='enabled' />
+          : <Button type="primary" onClick={onClick}>Enable</Button> }
+      </Descriptions.Item>
+      }
+      {Object.keys(features).map(feat => {
+        return (<Descriptions.Item key={feat} label={_split(feat)}>
+          <Badge status={features[feat] ? 'success' : 'error'} text={features[feat] ? 'enabled' : 'disabled'} />
+        </Descriptions.Item>
+        )}
+      )}
+    </Descriptions> )
+}
+
 function App() {
   const [state, dispatch] = useContext(Store)
   const {
@@ -215,17 +233,19 @@ function App() {
     async function getFeaturesStatus() {
       dispatch({type: 'LOADING_FEATURES_STATUS'})
       const featuresStatus = await token.features.getStatus()
+      let availableRoles = []
       console.log(featuresStatus)
       const pmEnabled = featuresStatus[PERMISSIONS_FEATURE]
       delete featuresStatus[PERMISSIONS_FEATURE]
-      const availableRoles = await token.permissions.getAvailableRoles()
-      console.log('availableRoles', availableRoles)
+      if (pmEnabled) {
+        availableRoles = await token.permissions.getAvailableRoles()
+      }
       dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
     }
     if (token) {
       getFeaturesStatus()
     }
-  }, [dispatch, token])
+  }, [availableRoles, dispatch, token])
 
   // Load delegates
   useEffect(() => {
@@ -253,7 +273,6 @@ function App() {
         const result = await queue.run()
         console.log(result)
       } else {
-      // @FIXME. features.disable() isn't implemented yet.
       // Disable module
         const queue = await token.features.disable({feature: PERMISSIONS_FEATURE})
         const result = await queue.run()
@@ -262,6 +281,10 @@ function App() {
       dispatch({type: 'TOGGLED_PM', pmEnabled: !enable})
     } catch (error) {
       console.error(error)
+      dispatch({
+        type: 'ERROR',
+        error: error.message
+      })
     }
   }
 
@@ -276,6 +299,10 @@ function App() {
       dispatch({type: 'REMOVED_DELEGATE'})
     } catch (error) {
       console.error(error)
+      dispatch({
+        type: 'ERROR',
+        error: error.message
+      })
     }
   }
 
@@ -284,11 +311,14 @@ function App() {
       dispatch({type: 'ADDING_DELEGATE', address})
       const queue = await token.permissions.assignRole({ delegateAddress: address, role })
       console.log(queue)
-      // @FIXME an exception occurs here.
       const res = await queue.run()
       dispatch({type: 'ADDED_DELEGATE'})
     } catch (error) {
       console.error(error)
+      dispatch({
+        type: 'ERROR',
+        error: error.message
+      })
     }
   }
 
@@ -300,8 +330,6 @@ function App() {
       role
     })))
   }, [])
-
-  console.log('delegates, records', delegates, records)
 
   return (
     <div>
@@ -339,22 +367,26 @@ function App() {
               padding: 50,
               backgroundColor: '#FAFDFF'
             }}>
-
               {error && <Alert
                 message={error}
                 type="error"
                 closable
                 showIcon
               />}
-              { token && features && availableRoles && delegates && <React.Fragment>
-                <PMDisplay enabled={pmEnabled}
-                  onChange={togglePM}
+              { token && features &&
+                <Fragment>
+                  <Divider orientation="left">Token features</Divider>
+                  <Features features={features} pmEnabled={pmEnabled} onClick={togglePM} />
+                </Fragment> }
+              { token && features && availableRoles && records.length > 0 && <React.Fragment>
+                <Divider orientation="left">Delegates (administrators and operators)</Divider>
+
+                <PMDisplay
                   records={records}
                   roles={availableRoles}
                   revokeRole={revokeRole}
                   assignRole={assignRole}/>
-              </React.Fragment>}
-
+              </React.Fragment> }
             </Content>
           </Layout>
         </Layout>
