@@ -55,25 +55,30 @@ export const reducer = (state, action) => {
     return {
       ...state,
       loading: true,
-      loadingMessage: 'Loading tokens'
+      loadingMessage: 'Loading tokens',
+      error: undefined,
     }
   case 'TOKEN_SELECTED':
     const { tokenIndex } = action
     return {
       ...state,
       tokenIndex,
-      pmEnabled: undefined
+      pmEnabled: undefined,
+      error: undefined,
+      features: undefined
     }
   case 'LOADING_DELEGATES':
     return {
       ...state,
       loading: true,
-      loadingMessage: 'Loading delegates'
+      loadingMessage: 'Loading delegates',
+      error: undefined,
     }
   case 'LOADING_FEATURES_STATUS':
     return {
       ...state,
       loading: true,
+      error: undefined,
       loadingMessage: 'Loading features status'
     }
   case 'REMOVING_DELEGATE':
@@ -81,6 +86,7 @@ export const reducer = (state, action) => {
     const { address } = action
     return {
       ...state,
+      error: undefined,
       address,
       loading: true,
       loadingMessage: action.type === 'REMOVING_DELEGATE' ?
@@ -97,12 +103,14 @@ export const reducer = (state, action) => {
     return {
       ...state,
       ...payload,
+      error: undefined,
       loading: false,
       loadingMessage: ''
     }
   case 'TOGGLING_PM':
     return {
       ...state,
+      error: undefined,
       loading: true,
       loadingMessage: 'Toggling permission management'
     }
@@ -144,7 +152,7 @@ function User({walletAddress}) {
 
 function Features({features, pmEnabled, onClick}) {
   return (
-    <Descriptions column={4}>
+    <Descriptions column={4} style={{marginBottom: 45}}>
       <Descriptions.Item key='Permissions' label='Permissions'>
         { pmEnabled
           ? <Badge status='success' text='enabled' />
@@ -239,13 +247,14 @@ function App() {
       delete featuresStatus[PERMISSIONS_FEATURE]
       if (pmEnabled) {
         availableRoles = await token.permissions.getAvailableRoles()
+        dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
       }
       dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
     }
     if (token) {
       getFeaturesStatus()
     }
-  }, [availableRoles, dispatch, token])
+  }, [pmEnabled, dispatch, token])
 
   // Load delegates
   useEffect(() => {
@@ -255,10 +264,10 @@ function App() {
       console.log('delegates', delegates)
       dispatch({type: 'LOADED_DELEGATES', delegates})
     }
-    if (pmEnabled) {
+    if (token && pmEnabled && features) {
       getDelegates()
     }
-  }, [tokens, pmEnabled, dispatch, token])
+  }, [pmEnabled, dispatch, token, features])
 
   const selectToken = (tokenIndex) => {
     dispatch({type: 'TOKEN_SELECTED', tokenIndex})
