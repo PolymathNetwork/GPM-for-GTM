@@ -63,9 +63,10 @@ export const reducer = (state, action) => {
     return {
       ...state,
       tokenIndex,
+      delegates: undefined,
       pmEnabled: undefined,
       error: undefined,
-      features: undefined
+      features: undefined,
     }
   case 'LOADING_DELEGATES':
     return {
@@ -152,7 +153,7 @@ function User({walletAddress}) {
 
 function Features({features, pmEnabled, onClick}) {
   return (
-    <Descriptions column={4} style={{marginBottom: 45}}>
+    <Descriptions column={4} style={{marginBottom: 50}}>
       <Descriptions.Item key='Permissions' label='Permissions'>
         { pmEnabled
           ? <Badge status='success' text='enabled' />
@@ -180,7 +181,7 @@ function App() {
     tokens,
     tokenIndex,
     pmEnabled,
-    delegates,
+    records,
     features,
     availableRoles
   } = state.AppReducer
@@ -247,14 +248,13 @@ function App() {
       delete featuresStatus[PERMISSIONS_FEATURE]
       if (pmEnabled) {
         availableRoles = await token.permissions.getAvailableRoles()
-        dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
       }
       dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
     }
-    if (token) {
+    if (token && !features) {
       getFeaturesStatus()
     }
-  }, [pmEnabled, dispatch, token])
+  }, [dispatch, features, token])
 
   // Load delegates
   useEffect(() => {
@@ -262,12 +262,18 @@ function App() {
       dispatch({type: 'LOADING_DELEGATES'})
       const delegates = await await token.permissions.getAllDelegates()
       console.log('delegates', delegates)
-      dispatch({type: 'LOADED_DELEGATES', delegates})
+      const records = delegates.reduce((acc, delegate, i) => {
+        return acc.concat(delegate.roles.map(role => ({
+          address: delegates[i].delegateAddress,
+          role
+        })))
+      }, [])
+      dispatch({type: 'LOADED_DELEGATES', delegates, records})
     }
-    if (token && pmEnabled && features) {
+    if (token && pmEnabled) {
       getDelegates()
     }
-  }, [pmEnabled, dispatch, token, features])
+  }, [pmEnabled, dispatch, token])
 
   const selectToken = (tokenIndex) => {
     dispatch({type: 'TOKEN_SELECTED', tokenIndex})
@@ -331,15 +337,6 @@ function App() {
     }
   }
 
-
-  const tokenSelectOpts = tokens.map((token, i) => ({label: token.symbol, value: i}))
-  const records = delegates.reduce((acc, delegate, i) => {
-    return acc.concat(delegate.roles.map(role => ({
-      address: delegates[i].delegateAddress,
-      role
-    })))
-  }, [])
-
   return (
     <div>
       <Spin spinning={loading} tip={loadingMessage} size="large">
@@ -361,14 +358,14 @@ function App() {
                 backgroundColor: '#FAFDFF'
               }}
             >
-              { walletAddress &&
+              { walletAddress && tokens &&
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   width: 250,
                   justifyContent: 'flex-start'
                 }}>
-                  <TokenSelector tokenSelectOpts={tokenSelectOpts} onChange={selectToken} />
+                  <TokenSelector tokenSelectOpts={tokens.map((token, i) => ({label: token.symbol, value: i}))} onChange={selectToken} />
                 </div>
               }
             </Sider>
@@ -387,7 +384,7 @@ function App() {
                   <Divider orientation="left">Token features</Divider>
                   <Features features={features} pmEnabled={pmEnabled} onClick={togglePM} />
                 </Fragment> }
-              { token && features && availableRoles && records.length > 0 && <React.Fragment>
+              { token && availableRoles && records && <React.Fragment>
                 <Divider orientation="left">Delegates (administrators and operators)</Divider>
 
                 <PMDisplay
