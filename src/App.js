@@ -25,38 +25,30 @@ const networkConfigs = {
 export const reducer = (state, action) => {
   console.log('ACTION', action)
   switch (action.type) {
-  case 'INITALIZING':
+  case 'ASYNC_START':
     return {
       ...state,
       loading: true,
-      loadingMessage: 'Initializing Polymath SDK',
+      loadingMessage: action.msg,
       error: undefined,
     }
-  case 'INITIALIZED':
-    const { sdk, networkId, walletAddress } = action
+  case 'ASYNC_COMPLETE':
+    const { type, ...payload } = action
     return {
       ...state,
+      ...payload,
       loading: false,
       loadingMessage: '',
-      error: undefined,
-      sdk,
-      networkId,
-      walletAddress
+      error: undefined
     }
   case 'ERROR':
+  case 'ASYNC_ERROR':
     const { error } = action
     return {
       ...state,
       loading: false,
       loadingMessage: '',
       error,
-    }
-  case 'LOADING_TOKENS':
-    return {
-      ...state,
-      loading: true,
-      loadingMessage: 'Loading tokens',
-      error: undefined,
     }
   case 'TOKEN_SELECTED':
     const { tokenIndex } = action
@@ -67,53 +59,6 @@ export const reducer = (state, action) => {
       pmEnabled: undefined,
       error: undefined,
       features: undefined,
-    }
-  case 'LOADING_DELEGATES':
-    return {
-      ...state,
-      loading: true,
-      loadingMessage: 'Loading delegates',
-      error: undefined,
-    }
-  case 'LOADING_FEATURES_STATUS':
-    return {
-      ...state,
-      loading: true,
-      error: undefined,
-      loadingMessage: 'Loading features status'
-    }
-  case 'REMOVING_DELEGATE':
-  case 'ADDING_DELEGATE':
-    const { address } = action
-    return {
-      ...state,
-      error: undefined,
-      address,
-      loading: true,
-      loadingMessage: action.type === 'REMOVING_DELEGATE' ?
-        `Revoking roles of ${address}` :
-        `Adding delegate ${address}`
-    }
-  case 'LOADED_TOKENS':
-  case 'TOGGLED_PM':
-  case 'LOADED_DELEGATES':
-  case 'REMOVED_DELEGATE':
-  case 'ADDED_DELEGATE':
-  case 'LOADED_FEATURES_STATUS':
-    const { type, ...payload } = action
-    return {
-      ...state,
-      ...payload,
-      error: undefined,
-      loading: false,
-      loadingMessage: ''
-    }
-  case 'TOGGLING_PM':
-    return {
-      ...state,
-      error: undefined,
-      loading: true,
-      loadingMessage: 'Toggling permission management'
     }
   default:
     throw new Error(`Unrecognized action type: ${action.type}`)
@@ -190,7 +135,7 @@ function App() {
   // Initialize the SDK.
   useEffect(() => {
     async function init() {
-      dispatch({type: 'INITALIZING'})
+      dispatch({type: 'ASYNC_START', msg: 'Initializing Polymath SDK'})
 
       try {
         const networkId = await browserUtils.getNetworkId()
@@ -207,7 +152,7 @@ function App() {
         const sdk = new Polymath()
         await sdk.connect(config)
         dispatch({
-          type: 'INITIALIZED',
+          type: 'ASYNC_COMPLETE',
           networkId,
           sdk,
           walletAddress,
@@ -215,7 +160,7 @@ function App() {
       }
       catch(error) {
         dispatch({
-          type: 'ERROR',
+          type: 'ASYNC_ERROR',
           error: error.message
         })
       }
@@ -228,9 +173,9 @@ function App() {
   // Fetch tokens
   useEffect(() => {
     async function getTokens(dispatch, sdk, walletAddress) {
-      dispatch({type: 'LOADING_TOKENS'})
+      dispatch({type: 'ASYNC_START', msg: 'Loading tokens'})
       const tokens = await sdk.getSecurityTokens({ walletAddress })
-      dispatch({type: 'LOADED_TOKENS', tokens})
+      dispatch({type: 'ASYNC_COMPLETE', tokens})
     }
     if (sdk && walletAddress && tokens.length === 0) {
       getTokens(dispatch, sdk, walletAddress)
@@ -240,7 +185,7 @@ function App() {
   // Load features status / available roles
   useEffect(() => {
     async function getFeaturesStatus() {
-      dispatch({type: 'LOADING_FEATURES_STATUS'})
+      dispatch({type: 'ASYNC_START', msg: 'Loading features status'})
       const featuresStatus = await token.features.getStatus()
       let availableRoles = []
       console.log(featuresStatus)
@@ -249,7 +194,7 @@ function App() {
       if (pmEnabled) {
         availableRoles = await token.permissions.getAvailableRoles()
       }
-      dispatch({type: 'LOADED_FEATURES_STATUS', availableRoles, features: featuresStatus, pmEnabled})
+      dispatch({type: 'ASYNC_COMPLETE', availableRoles, features: featuresStatus, pmEnabled})
     }
     if (token && !features) {
       getFeaturesStatus()
@@ -259,7 +204,7 @@ function App() {
   // Load delegates
   useEffect(() => {
     async function getDelegates() {
-      dispatch({type: 'LOADING_DELEGATES'})
+      dispatch({type: 'ASYNC_START', msg: 'Loading delegates'})
       const delegates = await await token.permissions.getAllDelegates()
       console.log('delegates', delegates)
       const records = delegates.reduce((acc, delegate, i) => {
@@ -268,7 +213,7 @@ function App() {
           role
         })))
       }, [])
-      dispatch({type: 'LOADED_DELEGATES', delegates, records})
+      dispatch({type: 'ASYNC_COMPLETE', delegates, records})
     }
     if (token && pmEnabled) {
       getDelegates()
@@ -281,7 +226,7 @@ function App() {
 
   async function togglePM(enable) {
     try {
-      dispatch({type: 'TOGGLING_PM'})
+      dispatch({type: 'ASYNC_START', msg: 'Toggle role management'})
       if (enable) {
       // Enable module
         const queue = await token.features.enable({feature: PERMISSIONS_FEATURE})
@@ -293,11 +238,11 @@ function App() {
         const result = await queue.run()
         console.log(result)
       }
-      dispatch({type: 'TOGGLED_PM', pmEnabled: !enable})
+      dispatch({type: 'ASYNC_COMPLETE', pmEnabled: !enable})
     } catch (error) {
       console.error(error)
       dispatch({
-        type: 'ERROR',
+        type: 'ASYNC_ERROR',
         error: error.message
       })
     }
@@ -305,17 +250,17 @@ function App() {
 
   const revokeRole = async (address, role) => {
     try {
-      dispatch({type: 'REMOVING_DELEGATE', address})
+      dispatch({type: 'ASYNC_START', msg: `Removing delegate ${address}`})
       const queue = await token.permissions.revokeRole({ delegateAddress: address, role })
       console.log(queue)
       // @FIXME an exception occurs here.
       const res = await queue.run()
       console.log('res', res)
-      dispatch({type: 'REMOVED_DELEGATE'})
+      dispatch({type: 'ASYNC_COMPLETE'})
     } catch (error) {
       console.error(error)
       dispatch({
-        type: 'ERROR',
+        type: 'ASYNC_ERROR',
         error: error.message
       })
     }
@@ -323,11 +268,11 @@ function App() {
 
   const assignRole = async (address, role) => {
     try {
-      dispatch({type: 'ADDING_DELEGATE', address})
+      dispatch({type: 'ASYNC_START', msg: `Adding delegate ${address}`})
       const queue = await token.permissions.assignRole({ delegateAddress: address, role })
       console.log(queue)
       const res = await queue.run()
-      dispatch({type: 'ADDED_DELEGATE'})
+      dispatch({type: 'ASYNC_COMPLETE'})
     } catch (error) {
       console.error(error)
       dispatch({
