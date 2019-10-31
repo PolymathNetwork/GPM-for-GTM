@@ -94,7 +94,7 @@ export default function PMDisplay({
               { required: true  }
             ]})(<Select>
               {rolesOpts.map(({value, label}) =>
-                <Option value={value}>{label}</Option>)}
+                <Option key={label} value={value}>{label}</Option>)}
             </Select>)}
           </Item>
           <Item name="details" label="Details">

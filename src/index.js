@@ -28,7 +28,7 @@ const WrappedApp = () => {
 }
 
 export const _split = (string) => {
-  return string.split(/(?=[A-Z])/)
+  return string.split(/(?=[A-Z])/).join(' ')
 }
 
 ReactDOM.render(<WrappedApp />, document.getElementById('root'))

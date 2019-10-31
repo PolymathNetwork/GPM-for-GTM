@@ -114,6 +114,17 @@ function Features({features, pmEnabled, onClick}) {
     </Descriptions> )
 }
 
+async function asyncAction(dispatch, func, msg = '') {
+  try {
+    dispatch({type: 'ASYNC_START', msg})
+    const rets = await func()
+    dispatch({type: 'ASYNC_COMPLETE', ...rets})
+  }
+  catch (error) {
+    dispatch({type: 'ASYNC_ERROR', error: error.message})
+  }
+}
+
 function App() {
   const [state, dispatch] = useContext(Store)
   const {
@@ -135,57 +146,46 @@ function App() {
   // Initialize the SDK.
   useEffect(() => {
     async function init() {
-      dispatch({type: 'ASYNC_START', msg: 'Initializing Polymath SDK'})
-
-      try {
-        const networkId = await browserUtils.getNetworkId()
-        const walletAddress = await browserUtils.getCurrentAddress()
-        if (![-1, 1, 42].includes(networkId)) {
-          dispatch({
-            type: 'ERROR',
-            error: 'Please switch to either Main or Kovan network'
-          })
-          return
-        }
-
-        const config = networkConfigs[networkId]
-        const sdk = new Polymath()
-        await sdk.connect(config)
+      const networkId = await browserUtils.getNetworkId()
+      const walletAddress = await browserUtils.getCurrentAddress()
+      if (![-1, 1, 42].includes(networkId)) {
         dispatch({
-          type: 'ASYNC_COMPLETE',
-          networkId,
-          sdk,
-          walletAddress,
+          type: 'ERROR',
+          error: 'Please switch to either Main or Kovan network'
         })
+        return
       }
-      catch(error) {
-        dispatch({
-          type: 'ASYNC_ERROR',
-          error: error.message
-        })
+
+      const config = networkConfigs[networkId]
+      const sdk = new Polymath()
+      await sdk.connect(config)
+      return {
+        networkId,
+        sdk,
+        walletAddress
       }
     }
     if (!sdk) {
-      init()
+      asyncAction(dispatch, () => init(), 'Initializing Polymath SDK')
     }
   }, [dispatch, sdk])
 
   // Fetch tokens
   useEffect(() => {
-    async function getTokens(dispatch, sdk, walletAddress) {
-      dispatch({type: 'ASYNC_START', msg: 'Loading tokens'})
+    async function getTokens(sdk, walletAddress) {
       const tokens = await sdk.getSecurityTokens({ walletAddress })
-      dispatch({type: 'ASYNC_COMPLETE', tokens})
+      return {
+        tokens
+      }
     }
     if (sdk && walletAddress && tokens.length === 0) {
-      getTokens(dispatch, sdk, walletAddress)
+      asyncAction(dispatch, () => getTokens(sdk, walletAddress), 'Loading tokens')
     }
   }, [walletAddress, sdk, dispatch, tokens])
 
   // Load features status / available roles
   useEffect(() => {
     async function getFeaturesStatus() {
-      dispatch({type: 'ASYNC_START', msg: 'Loading features status'})
       const featuresStatus = await token.features.getStatus()
       let availableRoles = []
       console.log(featuresStatus)
@@ -194,17 +194,18 @@ function App() {
       if (pmEnabled) {
         availableRoles = await token.permissions.getAvailableRoles()
       }
-      dispatch({type: 'ASYNC_COMPLETE', availableRoles, features: featuresStatus, pmEnabled})
+      return {
+        availableRoles, features: featuresStatus, pmEnabled
+      }
     }
     if (token && !features) {
-      getFeaturesStatus()
+      asyncAction(dispatch, () => getFeaturesStatus(), 'Loading features status')
     }
   }, [dispatch, features, token])
 
   // Load delegates
   useEffect(() => {
     async function getDelegates() {
-      dispatch({type: 'ASYNC_START', msg: 'Loading delegates'})
       const delegates = await await token.permissions.getAllDelegates()
       console.log('delegates', delegates)
       const records = delegates.reduce((acc, delegate, i) => {
@@ -213,10 +214,13 @@ function App() {
           role
         })))
       }, [])
-      dispatch({type: 'ASYNC_COMPLETE', delegates, records})
+      return {
+        delegates,
+        records
+      }
     }
     if (token && pmEnabled) {
-      getDelegates()
+      asyncAction(dispatch, () => getDelegates(), 'Loading delegates')
     }
   }, [pmEnabled, dispatch, token])
 
@@ -276,7 +280,7 @@ function App() {
     } catch (error) {
       console.error(error)
       dispatch({
-        type: 'ERROR',
+        type: 'ASYNC_ERROR',
         error: error.message
       })
     }
