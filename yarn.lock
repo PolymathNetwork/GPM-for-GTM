@@ -1608,10 +1608,10 @@
     lodash "^4.17.15"
     typescript "3.5.3"
 
-"@polymathnetwork/contract-wrappers@3.0.0-beta.47":
-  version "3.0.0-beta.47"
-  resolved "https://registry.yarnpkg.com/@polymathnetwork/contract-wrappers/-/contract-wrappers-3.0.0-beta.47.tgz#38018d8bb332804cfd9bef8e16ca6173439ae8f0"
-  integrity sha512-x2CHEU/6aj192Bv4vRdhDxwMfYIVRMKqljPpt1Ofg+pmHIUfsE0QqZDMgndWSo7Xa24PY3UYSt1zsUygvPNd9w==
+"@polymathnetwork/contract-wrappers@3.0.0-beta.52":
+  version "3.0.0-beta.52"
+  resolved "https://registry.yarnpkg.com/@polymathnetwork/contract-wrappers/-/contract-wrappers-3.0.0-beta.52.tgz#34945dc84dd5fb4b38ed9bb5f8f66f59bd91c6a9"
+  integrity sha512-IbZLoY6J62/cV8ZTwoIyANHMRVSzUWzRFy8zclokTkW0IqhdBe8xsyeWVj6capkG8Eu/JMiMztv6VJhwjvaCLg==
   dependencies:
     "@0x/assert" "2.1.6"
     "@0x/json-schemas" "4.0.2"
@@ -1630,15 +1630,15 @@
     semver "^6.3.0"
     uuid "^3.3.2"
 
-"@polymathnetwork/sdk@2.0.1-beta.45":
-  version "2.0.1-beta.45"
-  resolved "https://registry.yarnpkg.com/@polymathnetwork/sdk/-/sdk-2.0.1-beta.45.tgz#21ed22552d3240e9badc0174f0ef49aee184db29"
-  integrity sha512-I/aPRKUp6WX8fHBiTxHFMBDj0xxtCpeSHMfu4kNFl/D5FqcKt8Y2MgB4lIpPo4SFyG/j/EeL/wQ71ZdikizunA==
+"@polymathnetwork/sdk@2.0.1-beta.46":
+  version "2.0.1-beta.46"
+  resolved "https://registry.yarnpkg.com/@polymathnetwork/sdk/-/sdk-2.0.1-beta.46.tgz#cac04b001cc7cbbfab6ddf9ceba8421c92afe4ab"
+  integrity sha512-YbSkXtfb3SWPHlGtu1yqA2kYRM1mxZeBE+BoiOaPd/bHnLcSSb7f85Vbq8Jwwn3LsxGK2lvZRVeg8//FLsBOgQ==
   dependencies:
     "@0x/subproviders" "^3.0.2"
     "@babel/polyfill" "^7.0.0"
     "@babel/runtime" "^7.2.0"
-    "@polymathnetwork/contract-wrappers" "3.0.0-beta.47"
+    "@polymathnetwork/contract-wrappers" "3.0.0-beta.52"
     "@types/sinon" "^7.5.0"
     bluebird "^3.5.5"
     ethereum-address "^0.0.4"
