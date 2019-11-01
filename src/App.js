@@ -56,6 +56,7 @@ export const reducer = (state, action) => {
       ...state,
       tokenIndex,
       delegates: undefined,
+      records: undefined,
       pmEnabled: undefined,
       error: undefined,
       features: undefined,
@@ -206,7 +207,7 @@ function App() {
   // Load delegates
   useEffect(() => {
     async function getDelegates() {
-      const delegates = await await token.permissions.getAllDelegates()
+      const delegates = await token.permissions.getAllDelegates()
       console.log('delegates', delegates)
       const records = delegates.reduce((acc, delegate, i) => {
         return acc.concat(delegate.roles.map(role => ({
