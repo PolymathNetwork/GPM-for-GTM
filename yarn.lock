@@ -1630,10 +1630,10 @@
     semver "^6.3.0"
     uuid "^3.3.2"
 
-"@polymathnetwork/sdk@2.0.1-beta.46":
-  version "2.0.1-beta.46"
-  resolved "https://registry.yarnpkg.com/@polymathnetwork/sdk/-/sdk-2.0.1-beta.46.tgz#cac04b001cc7cbbfab6ddf9ceba8421c92afe4ab"
-  integrity sha512-YbSkXtfb3SWPHlGtu1yqA2kYRM1mxZeBE+BoiOaPd/bHnLcSSb7f85Vbq8Jwwn3LsxGK2lvZRVeg8//FLsBOgQ==
+"@polymathnetwork/sdk@2.0.1-beta.48":
+  version "2.0.1-beta.48"
+  resolved "https://registry.yarnpkg.com/@polymathnetwork/sdk/-/sdk-2.0.1-beta.48.tgz#a2340092b92440da6245a8b2b57b191fc0a90fa7"
+  integrity sha512-fCkPYNTELHHOhe8rdQKMpI+o09GbtQDu3Ne8Qb4RI4uRExeG1UxZ8XDrMugtuTt3cQ+bN7t8nm98K5NN6jfavQ==
   dependencies:
     "@0x/subproviders" "^3.0.2"
     "@babel/polyfill" "^7.0.0"

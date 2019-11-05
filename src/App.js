@@ -244,6 +244,7 @@ function App() {
         console.log(result)
       }
       dispatch({type: 'ASYNC_COMPLETE', pmEnabled: !enable})
+      dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
       console.error(error)
       dispatch({
@@ -262,6 +263,7 @@ function App() {
       const res = await queue.run()
       console.log('res', res)
       dispatch({type: 'ASYNC_COMPLETE'})
+      dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
       console.error(error)
       dispatch({
@@ -278,6 +280,7 @@ function App() {
       console.log(queue)
       const res = await queue.run()
       dispatch({type: 'ASYNC_COMPLETE'})
+      dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
       console.error(error)
       dispatch({
