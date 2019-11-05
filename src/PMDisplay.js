@@ -55,6 +55,8 @@ export default function PMDisplay({
         catch (error) {
           console.error(error)
         }
+        // Close form
+        setFormVisible(false)
       })
   }
 
@@ -65,6 +67,7 @@ export default function PMDisplay({
         onClick={() => setFormVisible(true)}
         style={{alignSelf: 'flex-end', marginBottom: 20}}>Assign a role</Button>
       <Modal
+        zIndex={0}
         title={'Assign a role'}
         okText="Save"
         closable={false}

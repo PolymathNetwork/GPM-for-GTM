@@ -189,7 +189,6 @@ function App() {
     async function getFeaturesStatus() {
       const featuresStatus = await token.features.getStatus()
       let availableRoles = []
-      console.log(featuresStatus)
       const pmEnabled = featuresStatus[PERMISSIONS_FEATURE]
       delete featuresStatus[PERMISSIONS_FEATURE]
       if (pmEnabled) {
@@ -208,7 +207,6 @@ function App() {
   useEffect(() => {
     async function getDelegates() {
       const delegates = await token.permissions.getAllDelegates()
-      console.log('delegates', delegates)
       const records = delegates.reduce((acc, delegate, i) => {
         return acc.concat(delegate.roles.map(role => ({
           address: delegates[i].delegateAddress,
@@ -236,12 +234,10 @@ function App() {
       // Enable module
         const queue = await token.features.enable({feature: PERMISSIONS_FEATURE})
         const result = await queue.run()
-        console.log(result)
       } else {
       // Disable module
         const queue = await token.features.disable({feature: PERMISSIONS_FEATURE})
         const result = await queue.run()
-        console.log(result)
       }
       dispatch({type: 'ASYNC_COMPLETE', pmEnabled: !enable})
       dispatch({type: 'TOKEN_SELECTED', tokenIndex})
@@ -256,12 +252,9 @@ function App() {
 
   const revokeRole = async (address, role) => {
     try {
-      dispatch({type: 'ASYNC_START', msg: `Removing delegate ${address}`})
+      dispatch({type: 'ASYNC_START', msg: `Revoking ${role} role from ${address}`})
       const queue = await token.permissions.revokeRole({ delegateAddress: address, role })
-      console.log(queue)
-      // @FIXME an exception occurs here.
       const res = await queue.run()
-      console.log('res', res)
       dispatch({type: 'ASYNC_COMPLETE'})
       dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
@@ -275,10 +268,8 @@ function App() {
 
   const assignRole = async (address, role) => {
     try {
-      dispatch({type: 'ASYNC_START', msg: `Adding delegate ${address}`})
+      dispatch({type: 'ASYNC_START', msg: `Assigning ${role} role to ${address}`})
       const queue = await token.permissions.assignRole({ delegateAddress: address, role })
-      console.log(queue)
-      const res = await queue.run()
       dispatch({type: 'ASYNC_COMPLETE'})
       dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
