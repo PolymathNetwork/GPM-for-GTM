@@ -20,8 +20,10 @@ const formItemLayout = {
   },
 }
 const rolesMap = {
-  'Erc20DividendsAdministrator': 'Erc20DividendsAdministrator',
-  'Erc20DividendsOperator': 'Erc20DividendsOperator',
+  'StoOperator': 'STO Operator',
+  'StoAdministrator': 'STO Administrator',
+  'Erc20DividendsAdministrator': 'ERC20 Dividends Administrator',
+  'Erc20DividendsOperator': 'ERC20 Dividends Operator',
   'PermissionsOperator': 'Permissions Operator',
   'ShareholdersOperator': 'Shareholders Operator',
   'PermissionsAdministrator': 'Permissions Administrator',
