@@ -270,6 +270,7 @@ function App() {
     try {
       dispatch({type: 'ASYNC_START', msg: `Assigning ${role} role to ${address}`})
       const queue = await token.permissions.assignRole({ delegateAddress: address, role })
+      await queue.run()
       dispatch({type: 'ASYNC_COMPLETE'})
       dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
