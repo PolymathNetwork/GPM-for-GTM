@@ -109,7 +109,7 @@ export default function PMDisplay({
           </Item>
         </Form>
       </Modal>
-      <Table size="middle" dataSource={records} rowKey={(address, role) => `${address}-${role}`}>
+      <Table style={{zIndex: 0}} size="middle" dataSource={records} rowKey={(address, role) => `${address}-${role}`}>
         <Column
           title='Address'
           dataIndex='address'
