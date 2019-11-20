@@ -136,7 +136,8 @@ function App() {
       const delegates = await token.permissions.getAllDelegates()
       const records = delegates.reduce((acc, delegate, i) => {
         return acc.concat(delegate.roles.map(role => ({
-          address: delegates[i].delegateAddress,
+          address: delegates[i].address,
+          description: delegates[i].description,
           role
         })))
       }, [])

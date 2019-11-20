@@ -2,7 +2,7 @@ import React, {Fragment, useState} from 'react'
 import { Table, Typography, Button, Icon, Form, Input, Modal, Select } from 'antd'
 import useForm from 'rc-form-hooks'
 import { _split } from './index'
-import { utils as web3Utils } from 'web3'
+import * as web3Utils from 'web3-utils'
 
 const { Column } = Table
 const { Text } = Typography
@@ -36,11 +36,6 @@ export default function PMDisplay({
   assignRole,
   roles
 }) {
-  records = records.map(({address, role}) => ({
-    key: address,
-    address: address,
-    role
-  }))
   const { getFieldDecorator, validateFields, resetFields } = useForm()
   const [formVisible, setFormVisible] = useState(false)
 
@@ -49,7 +44,8 @@ export default function PMDisplay({
     label: rolesMap[role]
   }))
   const handleSubmit = async () => {
-    const fields = ['address', 'role']
+    console.log('handleSubmit')
+    const fields = ['address', 'role', 'description']
     validateFields(fields, { force: true })
       .then(async (values) => {
         console.log(values)
@@ -74,7 +70,7 @@ export default function PMDisplay({
         style={{alignSelf: 'flex-end', marginBottom: 20}}>Assign a role</Button>
       <Modal
         zIndex={0}
-        title={'Assign a role'}
+        title='Assign a role'
         okText="Save"
         closable={false}
         visible={formVisible}
@@ -84,15 +80,17 @@ export default function PMDisplay({
           <Item name="address" label="Address">
             {getFieldDecorator('address', {
               rules: [
-                { required: true  },
                 {
                   validator: (rule, value, callback) => {
-                    if (!web3Utils.isAddress(value)) {
-                      callback('Address is invalid')
-                      return
+                    if (!value) {
+                      callback('Address is required')
                     }
-                    callback()
-                    return
+                    else if (!web3Utils.isAddress(value)) {
+                      callback('Address is invalid')
+                    }
+                    else {
+                      callback()
+                    }
                   }
                 }
               ],
@@ -106,15 +104,19 @@ export default function PMDisplay({
                 <Option key={label} value={value}>{label}</Option>)}
             </Select>)}
           </Item>
-          <Item name="details" label="Details">
-            {getFieldDecorator('details')(<Input />)}
+          <Item name="description" label="Description">
+            {getFieldDecorator('description')(<Input />)}
           </Item>
           <Item>
-            <Button onClick={() => setFormVisible(false)}>Cancel</Button>
+            <Button onClick={() => {
+              setFormVisible(false)
+              resetFields()
+            }}>Cancel</Button>
             <Button type="primary" onClick={handleSubmit}>Save</Button>
           </Item>
         </Form>
       </Modal>
+
       <Table style={{zIndex: 0}} size="middle" dataSource={records} rowKey={(address, role) => `${address}-${role}`}>
         <Column
           title='Address'
@@ -127,6 +129,12 @@ export default function PMDisplay({
           dataIndex='role'
           key='role'
           render={(role) => <Text>{_split(role)}</Text>}
+        />
+        <Column
+          title='Desc'
+          dataIndex='description'
+          key='description'
+          render={(text) => <Text>{text}</Text>}
         />
         <Column
           title='Actions'
