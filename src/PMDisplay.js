@@ -1,5 +1,5 @@
 import React, {Fragment, useState} from 'react'
-import { Table, Typography, Button, Icon, Form, Input, Modal, Spin, Select } from 'antd'
+import { Table, Typography, Button, Icon, Form, Input, Modal, Select } from 'antd'
 import useForm from 'rc-form-hooks'
 import { _split } from './index'
 import { utils as web3Utils } from 'web3'
@@ -41,7 +41,7 @@ export default function PMDisplay({
     address: address,
     role
   }))
-  const { getFieldDecorator, validateFields, errors, values, resetFields } = useForm()
+  const { getFieldDecorator, validateFields, resetFields } = useForm()
   const [formVisible, setFormVisible] = useState(false)
 
   const rolesOpts = roles.map(role => ({

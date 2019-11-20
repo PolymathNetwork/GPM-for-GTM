@@ -1,26 +1,14 @@
 import React, { useContext, useEffect, Fragment } from 'react'
+import { usePolymathSdk, useTokenSelector, User, Network} from '@polymathnetwork/react'
+
 import { Store } from './index'
-import { Polymath, browserUtils } from '@polymathnetwork/sdk'
-import { Layout, Spin, Icon, Typography, Alert, Button, Descriptions, Badge, Divider } from 'antd'
-import TokenSelector from './TokenSelector'
+import { Layout, Spin, Alert, Button, Descriptions, Badge, Divider } from 'antd'
 import PMDisplay from './PMDisplay'
 import { _split } from './index'
+
 const { Content, Header, Sider } = Layout
-const { Text } = Typography
 
 const PERMISSIONS_FEATURE = 'Permissions'
-
-const networkConfigs = {
-  1: {
-    polymathRegistryAddress: '0xdfabf3e4793cd30affb47ab6fa4cf4eef26bbc27'
-  },
-  42: {
-    polymathRegistryAddress: '0x5b215a7d39ee305ad28da29bf2f0425c6c2a00b3'
-  },
-  15: {
-    polymathRegistryAddress: '0x9FBDa871d559710256a2502A2517b794B482Db40'
-  }
-}
 
 export const reducer = (state, action) => {
   console.log('ACTION', action)
@@ -66,37 +54,6 @@ export const reducer = (state, action) => {
   }
 }
 
-function Network({networkId}) {
-  const networks = {
-    0: 'Disconnected',
-    1: 'Mainnet',
-    42: 'Kovan'
-  }
-  return (
-    <Fragment>
-      <Icon type="global" style={{
-        marginRight: 10,
-        marginLeft: 20
-      }} />
-      <Text>{networks[networkId]}</Text>
-    </Fragment>
-  )
-}
-
-function User({walletAddress}) {
-  if (walletAddress)
-    return (
-      <Fragment>
-        <Icon type="user" style={{
-          marginRight: 5,
-          marginLeft: 10
-        }}/>
-        <Text>{walletAddress}</Text>
-      </Fragment>
-    )
-  return null
-}
-
 function Features({features, pmEnabled, onClick}) {
   return (
     <Descriptions column={4} style={{marginBottom: 50}}>
@@ -128,15 +85,13 @@ async function asyncAction(dispatch, func, msg = '') {
 
 function App() {
   const [state, dispatch] = useContext(Store)
-  const {
-    sdk,
+  let {error: sdkError, sdk, networkId, walletAddress} = usePolymathSdk()
+  let {error: tokenSelectorError, tokenSelector, tokens, tokenIndex} = useTokenSelector(sdk, walletAddress)
+
+  let {
     loading,
     loadingMessage,
-    walletAddress,
     error,
-    networkId,
-    tokens,
-    tokenIndex,
     pmEnabled,
     records,
     features,
@@ -144,45 +99,17 @@ function App() {
   } = state.AppReducer
   const token = tokens[tokenIndex]
 
-  // Initialize the SDK.
-  useEffect(() => {
-    async function init() {
-      const networkId = await browserUtils.getNetworkId()
-      const walletAddress = await browserUtils.getCurrentAddress()
-      if (![-1, 1, 42].includes(networkId)) {
-        dispatch({
-          type: 'ERROR',
-          error: 'Please switch to either Main or Kovan network'
-        })
-        return
-      }
-
-      const config = networkConfigs[networkId]
-      const sdk = new Polymath()
-      await sdk.connect(config)
-      return {
-        networkId,
-        sdk,
-        walletAddress
-      }
-    }
+  error = error || sdkError || tokenSelectorError
+  if (!error && !loadingMessage) {
     if (!sdk) {
-      asyncAction(dispatch, () => init(), 'Initializing Polymath SDK')
+      loading = true
+      loadingMessage = 'Initializing Polymath SDK'
     }
-  }, [dispatch, sdk])
-
-  // Fetch tokens
-  useEffect(() => {
-    async function getTokens(sdk, walletAddress) {
-      const tokens = await sdk.getSecurityTokens({ walletAddress })
-      return {
-        tokens
-      }
+    else if (!tokens.length) {
+      loading = true
+      loadingMessage = 'Loading your security tokens'
     }
-    if (sdk && walletAddress && tokens.length === 0) {
-      asyncAction(dispatch, () => getTokens(sdk, walletAddress), 'Loading tokens')
-    }
-  }, [walletAddress, sdk, dispatch, tokens])
+  }
 
   // Load features status / available roles
   useEffect(() => {
@@ -223,21 +150,17 @@ function App() {
     }
   }, [pmEnabled, dispatch, token])
 
-  const selectToken = (tokenIndex) => {
-    dispatch({type: 'TOKEN_SELECTED', tokenIndex})
-  }
-
   async function togglePM(enable) {
     try {
       dispatch({type: 'ASYNC_START', msg: 'Toggle role management'})
       if (enable) {
-      // Enable module
+        // Enable module
         const queue = await token.features.enable({feature: PERMISSIONS_FEATURE})
-        const result = await queue.run()
+        await queue.run()
       } else {
-      // Disable module
+        // Disable module
         const queue = await token.features.disable({feature: PERMISSIONS_FEATURE})
-        const result = await queue.run()
+        await queue.run()
       }
       dispatch({type: 'ASYNC_COMPLETE', pmEnabled: !enable})
       dispatch({type: 'TOKEN_SELECTED', tokenIndex})
@@ -254,7 +177,7 @@ function App() {
     try {
       dispatch({type: 'ASYNC_START', msg: `Revoking ${role} role from ${address}`})
       const queue = await token.permissions.revokeRole({ delegateAddress: address, role })
-      const res = await queue.run()
+      await queue.run()
       dispatch({type: 'ASYNC_COMPLETE'})
       dispatch({type: 'TOKEN_SELECTED', tokenIndex})
     } catch (error) {
@@ -310,7 +233,7 @@ function App() {
                   width: 250,
                   justifyContent: 'flex-start'
                 }}>
-                  <TokenSelector tokenSelectOpts={tokens.map((token, i) => ({label: token.symbol, value: i}))} onChange={selectToken} />
+                  {tokenSelector}
                 </div>
               }
             </Sider>
