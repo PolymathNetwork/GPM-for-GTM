@@ -48,10 +48,9 @@ export default function PMDisplay({
     const fields = ['address', 'role', 'description']
     validateFields(fields, { force: true })
       .then(async (values) => {
-        console.log(values)
-
+        const { address, description, role } = values
         try {
-          await assignRole(values.address, values.role)
+          await assignRole(address, role, description)
           resetFields()
         }
         catch (error) {
@@ -105,7 +104,9 @@ export default function PMDisplay({
             </Select>)}
           </Item>
           <Item name="description" label="Description">
-            {getFieldDecorator('description')(<Input />)}
+            {getFieldDecorator('description', {rules: [
+              { required: true  }
+            ]})(<Input />)}
           </Item>
           <Item>
             <Button onClick={() => {
