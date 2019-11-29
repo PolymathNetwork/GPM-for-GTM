@@ -44,7 +44,6 @@ export default function PMDisplay({
     label: rolesMap[role]
   }))
   const handleSubmit = async () => {
-    console.log('handleSubmit')
     const fields = ['address', 'role', 'description']
     validateFields(fields, { force: true })
       .then(async (values) => {

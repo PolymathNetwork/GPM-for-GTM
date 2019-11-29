@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, Fragment } from 'react'
-import { usePolymathSdk, useTokenSelector, User, Network} from '@polymathnetwork/react'
-
+import { usePolymathSdk, User, Network, useTokenSelector} from '@polymathnetwork/react'
+import { Feature } from '@polymathnetwork/sdk'
 import { Store } from './index'
 import { Layout, Spin, Alert, Button, Descriptions, Badge, Divider } from 'antd'
 import PMDisplay from './PMDisplay'
@@ -8,7 +8,7 @@ import { _split } from './index'
 
 const { Content, Header, Sider } = Layout
 
-const PERMISSIONS_FEATURE = 'Permissions'
+const PERMISSIONS_FEATURE = Feature.Permissions
 
 export const reducer = (state, action) => {
   console.log('ACTION', action)
@@ -39,10 +39,8 @@ export const reducer = (state, action) => {
       error,
     }
   case 'TOKEN_SELECTED':
-    const { tokenIndex } = action
     return {
       ...state,
-      tokenIndex,
       delegates: undefined,
       records: undefined,
       pmEnabled: undefined,
@@ -86,8 +84,13 @@ async function asyncAction(dispatch, func, msg = '') {
 function App() {
   const [state, dispatch] = useContext(Store)
   let {error: sdkError, sdk, networkId, walletAddress} = usePolymathSdk()
-  let {error: tokenSelectorError, tokenSelector, tokens, tokenIndex} = useTokenSelector(sdk, walletAddress)
-
+  let {
+    error: tokenSelectorError,
+    tokenSelector,
+    tokens,
+    tokenIndex,
+  } = useTokenSelector(sdk, walletAddress)
+  console.log('tokenSelector', tokenSelector)
   let {
     loading,
     loadingMessage,
@@ -164,7 +167,7 @@ function App() {
         await queue.run()
       }
       dispatch({type: 'ASYNC_COMPLETE', pmEnabled: !enable})
-      dispatch({type: 'TOKEN_SELECTED', tokenIndex})
+      dispatch({type: 'TOKEN_SELECTED'})
     } catch (error) {
       console.error(error)
       dispatch({
@@ -180,7 +183,7 @@ function App() {
       const queue = await token.permissions.revokeRole({ delegateAddress: address, role })
       await queue.run()
       dispatch({type: 'ASYNC_COMPLETE'})
-      dispatch({type: 'TOKEN_SELECTED', tokenIndex})
+      dispatch({type: 'TOKEN_SELECTED'})
     } catch (error) {
       console.error(error)
       dispatch({
@@ -196,7 +199,7 @@ function App() {
       const queue = await token.permissions.assignRole({ delegateAddress: address, role, description})
       await queue.run()
       dispatch({type: 'ASYNC_COMPLETE'})
-      dispatch({type: 'TOKEN_SELECTED', tokenIndex})
+      dispatch({type: 'TOKEN_SELECTED'})
     } catch (error) {
       console.error(error)
       dispatch({
@@ -234,7 +237,9 @@ function App() {
                   width: 250,
                   justifyContent: 'flex-start'
                 }}>
-                  {tokenSelector}
+                  {tokenSelector({
+                    onTokenSelect: () => dispatch({type: 'TOKEN_SELECTED'})
+                  })}
                 </div>
               }
             </Sider>
