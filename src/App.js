@@ -90,7 +90,7 @@ function App() {
     tokens,
     tokenIndex,
   } = useTokenSelector(sdk, walletAddress)
-  console.log('tokenSelector', tokenSelector)
+
   let {
     loading,
     loadingMessage,
