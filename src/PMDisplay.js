@@ -25,9 +25,9 @@ const rolesMap = {
   'Erc20DividendsAdministrator': 'ERC20 Dividends Administrator',
   'Erc20DividendsOperator': 'ERC20 Dividends Operator',
   'PermissionsOperator': 'Permissions Operator',
-  'ShareholdersOperator': 'Shareholders Operator',
+  'TokenholdersOperator': 'Tokenholders Operator',
   'PermissionsAdministrator': 'Permissions Administrator',
-  'ShareholdersAdministrator' : 'Shareholders Administrator'
+  'TokenholdersAdministrator' : 'Tokenholders Administrator'
 }
 
 export default function PMDisplay({
